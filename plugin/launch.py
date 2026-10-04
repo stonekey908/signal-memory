@@ -5,8 +5,11 @@ uv needs nothing but a Python to run it). It exists because the full install is 
 Mac with empty caches, installing everything (the search model's libraries are ~650 MB) took 267 s,
 long enough for a host to give up on the server. So:
 
-  1. The light core (the engine has one small dependency) is installed into the plugin's DATA folder,
-     which survives plugin updates. Seconds, not minutes. Re-done only when ``uv.lock`` changes.
+  1. The core is NOT built or installed at all: the server is standard-library Python and runs
+     straight from the shipped source (``python -m signal_engine.dumb_mcp_server`` with ``src`` on
+     the path). The only "install" is a Python environment in the plugin's DATA folder, which
+     survives plugin updates. A measured first start spent 9 s downloading build tooling just to
+     create a launcher script; now it needs no network at all once a Python is present.
   2. If full search is wanted and not ready yet, its install runs in the BACKGROUND, detached, and
      this session starts on keyword search. The engine reports which search ran (``ranked``), so the
      degraded session is visible, not silent. Every later session uses full search.
@@ -93,7 +96,8 @@ def _child_env(**extra):
 
 
 def _sync(extras, log):
-    cmd = ["uv", "sync", "--project", ROOT, "--frozen", "--inexact", "--quiet"]
+    # --no-install-project: the server runs from source; nothing is built, no build backend fetched.
+    cmd = ["uv", "sync", "--project", ROOT, "--frozen", "--inexact", "--no-install-project", "--quiet"]
     for extra in extras:
         cmd += ["--extra", extra]
     return subprocess.run(cmd, env=_child_env(), stdout=log, stderr=log, stdin=subprocess.DEVNULL).returncode
@@ -178,7 +182,7 @@ def main():
 
     lock = _lock_hash()
     state = _state()
-    if state.get("core_lock") != lock or not os.path.exists(_bin("signal-memory-mcp")):
+    if state.get("core_lock") != lock or not os.path.exists(_bin("python")):
         started = time.time()
         with open(LOG, "a") as log:
             _log("core: installing")
@@ -196,16 +200,18 @@ def main():
     if full and not ready:
         _start_full_search_install()
 
-    env = _child_env(SIGNAL_DUMB_EMBED="local" if ready else "none")
+    env = _child_env(SIGNAL_DUMB_EMBED="local" if ready else "none",
+                     PYTHONPATH=os.path.join(ROOT, "src"))        # the server runs from source
     project = _project_dir()
     if project is None and not env.get("SIGNAL_MEMORY_PATH") and not env.get("SIGNAL_MEMORY_SCOPE"):
         env["SIGNAL_MEMORY_PATH"] = os.path.join(DATA, "memory.json")    # never inside the plugin
-    exe = _bin("signal-memory-mcp")
+    exe = _bin("python")
+    argv = [exe, "-m", "signal_engine.dumb_mcp_server"]
     if os.name == "posix":
         if project:
             os.chdir(project)
-        os.execve(exe, [exe], env)
-    return subprocess.call([exe], env=env, cwd=project)
+        os.execve(exe, argv, env)
+    return subprocess.call(argv, env=env, cwd=project)
 
 
 if __name__ == "__main__":
