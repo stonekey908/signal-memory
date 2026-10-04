@@ -49,6 +49,11 @@ If you would rather not download that much, turn **Full search** off in the plug
 (`/plugin`, then configure Signal Memory). Memory then stays on keyword search, which is weaker but
 still useful.
 
+## Tested
+
+Signal Memory has an extensive automated test suite (over 600 tests) and has been run end to end
+through real Claude Code sessions, including clean installs from this repository.
+
 ## Where your memory lives
 
 | What | Where |

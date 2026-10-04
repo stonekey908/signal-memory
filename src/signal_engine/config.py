@@ -29,13 +29,13 @@ class ModelRecipe:
     Two configs share everything except the *scribbler* (the engine's own model
     that writes notes, filters junk, and re-ranks):
 
-    * **headline** — scribbler = ``gpt-4o-mini`` (matches mem0 exactly, so the
-      only difference vs mem0 is our memory *design*).
+    * **headline** — scribbler = ``gpt-4o-mini`` (a small, inexpensive model, so
+      results reflect the memory *design* rather than a large extractor).
     * **agnostic** — scribbler = a Gemini-flash / local model (proves the engine
       is model-agnostic — NFR-2).
 
     The reader + judge are pinned to ``gpt-4o`` by the benchmark rules, and the
-    embedder to ``text-embedding-3-small`` to match mem0's ruler.
+    embedder to ``text-embedding-3-small`` so runs are comparable.
     """
 
     scribbler: str

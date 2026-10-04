@@ -9,7 +9,7 @@ retrieval *dropped* the superseded ones, cratering multi-session. This redesign 
    wrong guess can never remove a needed fact. Both stay searchable; the reader resolves
    current-vs-historical from the annotation.
 
-mem0 deletes the old value (history lost); we keep it (answer "now" AND "before"). Pluggable:
+The old value is kept, not deleted, so memory can answer "now" AND "before". Pluggable:
 ``MockReconciler`` (no key) + ``OpenAIReconciler`` (real, strict prompt).
 """
 

@@ -60,7 +60,7 @@ class MemoryService:
     engine: "object"                    # a MemoryEngine (SignalEngine or a mock)
     recall_k: int = 6                   # max memories for a PRECISE query (a handful)
     pool_gate: float = 0.15             # wide low bar: candidates the reranker then judges by MEANING
-    pool_k: int = 12                    #  (fixes vocabulary mismatch cosine misses — mem0's reranker idea)
+    pool_k: int = 12                    #  (fixes vocabulary mismatch cosine misses)
     relevance_floor: float = 0.28       # cosine floor for the no-reranker fallback path
     recall_shortlist: int = 40
     broad_floor: float = 0.12           # BROAD queries ("tell me everything") relax the floor...

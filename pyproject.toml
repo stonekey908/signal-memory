@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "signal-engine"
 version = "0.0.1"
-description = "Agent-level automated long-term memory engine, benchmarked vs mem0 on LongMemEval / BEAM."
+description = "Long-term memory for AI coding agents. Runs locally, extensively tested."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [

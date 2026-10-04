@@ -1,6 +1,6 @@
 {
   "name": "signal-memory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Long-term memory for Claude Code that runs entirely on your machine. Your agent stores decisions, commands, gotchas and preferences as small cards, and recalls them in later sessions: ranked search, pinned standing rules, labels for how each fact is known, and a lifecycle that summarises old cards without deleting them. No account, no API key, no data leaves your computer.",
   "author": {
     "name": "Nick Elias",

@@ -414,7 +414,7 @@ def _orphan_entities(text) -> set:
 
 # Coverage questions (summarise / order events / reason across sessions) need MANY cards; precise
 # questions get distracted by them. Depth is inferred from the QUESTION WORDING — the same adaptive
-# depth the main engine uses (harness.beam.wants_breadth) that lifted the frozen recipe 0.60 -> 0.68.
+# depth the main engine uses (harness.beam.wants_breadth).
 _BREADTH_HINTS = (
     "summar", "what order", "order in which", "order did", "chronolog", "sequence", "timeline",
     "first to last", "evolve", "over the course", "over time", "across", "overall", "all the",
@@ -562,7 +562,7 @@ class DumbMemory:
         self._tok_cache = {}   # signal_id -> token set
         self._bar_cache = {}   # signal_id -> what the relevance bar reads off a card (see _bar_card)
         self._policy_set_at = None   # when importance_policy was last set by configure (persisted)
-        # ENTITY signal (mem0's 3rd retrieval signal): + entity_weight * (fraction of the query's
+        # ENTITY signal (the 3rd retrieval signal): + entity_weight * (fraction of the query's
         # entities the card names). Entities = proper nouns / versions / dates — the exact handles a
         # precise or temporal question turns on, so the card actually naming "Railway"/"2026-03" wins.
         # RECENCY: for "latest / most recent / currently" questions, + recency_weight * how new the card
