@@ -40,7 +40,7 @@ Then restart Claude Code.
 ## The first session
 
 1. **Memory starts in a few seconds** with keyword search, so you can use it straight away.
-2. **Full search installs in the background.** It downloads about 650 MB of libraries and a 90 MB
+2. **Full search installs in the background.** It downloads about 800 MB of libraries and a 90 MB
    model, once. From your next session, recall also searches by meaning.
 3. **Your agent sets itself up.** On a new project it chooses a sensible setup, tells you what it chose,
    and starts saving.

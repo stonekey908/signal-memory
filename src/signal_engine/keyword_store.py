@@ -18,7 +18,7 @@ import uuid
 from typing import List, Optional, Sequence
 
 from signal_engine.signal import Signal
-from signal_engine.store import _keyword_hits
+from signal_engine.signal import _keyword_hits
 
 
 class _FileLock:

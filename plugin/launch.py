@@ -12,6 +12,8 @@ long enough for a host to give up on the server. So:
      degraded session is visible, not silent. Every later session uses full search.
   3. The server starts in the user's PROJECT folder, so memory stays per project
      (``<project>/.signal_engine/memory.json``), exactly as with a manual install.
+  4. Child processes get an ALLOW-LIST of environment variables (paths, locale, proxies), never the
+     whole environment, so no API key or token in the user's shell reaches an install job.
 
 Nothing here writes to stdout: stdout is the MCP channel. All install output goes to a log file.
 """
@@ -58,15 +60,43 @@ def _lock_hash():
         return hashlib.sha256(fh.read()).hexdigest()[:16]
 
 
-def _uv_env():
-    return dict(os.environ, UV_PROJECT_ENVIRONMENT=VENV)
+# Variables a child process (uv, the server, the background install) may see. An ALLOW-LIST, never
+# the whole environment: a plugin's install job must not be handed the user's API keys and tokens
+# just because they happen to be set in the shell (Anthropic's plugin scanner holds exactly that).
+# Paths, locale, proxy and certificate settings are enough for uv and the server to work.
+_PASS_THROUGH = (
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "LC_CTYPE",
+    "TZ", "TERM",
+    # Windows
+    "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT", "APPDATA", "LOCALAPPDATA",
+    "USERPROFILE", "PROGRAMDATA", "PROGRAMFILES", "HOMEDRIVE", "HOMEPATH",
+    # network: proxies and corporate certificates (addresses, never credentials)
+    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy",
+    "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "UV_NATIVE_TLS",
+    # where uv keeps its downloads and Pythons; HF_HOME is where the search model is cached
+    "UV_CACHE_DIR", "UV_PYTHON_INSTALL_DIR", "UV_PYTHON", "UV_OFFLINE", "HF_HOME", "HF_HUB_OFFLINE",
+    "XDG_CACHE_HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME",
+    # the plugin's own and the memory server's settings (set by Claude Code, or by the user)
+    "CLAUDE_PLUGIN_ROOT", "CLAUDE_PLUGIN_DATA", "CLAUDE_PROJECT_DIR", "SIGNAL_MEMORY_FULL_SEARCH",
+    "SIGNAL_MEMORY_PATH", "SIGNAL_MEMORY_SCOPE", "SIGNAL_MEMORY_LOCK", "SIGNAL_MEMORY_AUTONOMY",
+    "SIGNAL_MEMORY_MANUAL", "SIGNAL_EMBED_MODEL", "SIGNAL_DUMB_WIKI",
+)
+
+
+def _child_env(**extra):
+    env = {k: os.environ[k] for k in _PASS_THROUGH if k in os.environ}
+    env.setdefault("HF_HOME", os.path.join(DATA, "hf"))          # the model lives in plugin data
+    env.setdefault("UV_CACHE_DIR", os.path.join(DATA, "uv-cache"))   # ...and so do uv's downloads
+    env["UV_PROJECT_ENVIRONMENT"] = VENV
+    env.update(extra)
+    return env
 
 
 def _sync(extras, log):
     cmd = ["uv", "sync", "--project", ROOT, "--frozen", "--inexact", "--quiet"]
     for extra in extras:
         cmd += ["--extra", extra]
-    return subprocess.run(cmd, env=_uv_env(), stdout=log, stderr=log, stdin=subprocess.DEVNULL).returncode
+    return subprocess.run(cmd, env=_child_env(), stdout=log, stderr=log, stdin=subprocess.DEVNULL).returncode
 
 
 def _bin(name):
@@ -105,7 +135,7 @@ def _start_full_search_install():
     with open(INSTALLING, "w") as fh:
         fh.write(str(os.getpid()))
     log = open(LOG, "a")
-    kwargs = {"stdout": log, "stderr": log, "stdin": subprocess.DEVNULL, "env": dict(os.environ)}
+    kwargs = {"stdout": log, "stderr": log, "stdin": subprocess.DEVNULL, "env": _child_env()}
     if os.name == "nt":
         kwargs["creationflags"] = 0x00000008 | 0x00000200      # DETACHED_PROCESS | NEW_PROCESS_GROUP
     else:
@@ -125,7 +155,7 @@ def prepare_full_search():
             code = subprocess.run(
                 [_bin("python"), "-c",
                  f"from sentence_transformers import SentenceTransformer; SentenceTransformer('{MODEL}')"],
-                stdout=log, stderr=log, stdin=subprocess.DEVNULL).returncode
+                env=_child_env(), stdout=log, stderr=log, stdin=subprocess.DEVNULL).returncode
             if code != 0:
                 _log("full search: model download FAILED; sessions stay on keyword search.")
                 return 1
@@ -166,7 +196,7 @@ def main():
     if full and not ready:
         _start_full_search_install()
 
-    env = dict(os.environ, SIGNAL_DUMB_EMBED="local" if ready else "none")
+    env = _child_env(SIGNAL_DUMB_EMBED="local" if ready else "none")
     project = _project_dir()
     if project is None and not env.get("SIGNAL_MEMORY_PATH") and not env.get("SIGNAL_MEMORY_SCOPE"):
         env["SIGNAL_MEMORY_PATH"] = os.path.join(DATA, "memory.json")    # never inside the plugin

@@ -1464,7 +1464,7 @@ class DumbMemory:
         signal_to_context itself is untouched (shared with the frozen benchmark path, whose signals
         carry no volatility -> no marker there). Shared by get() and recall() so the one-call and
         two-call read paths never drift apart."""
-        from signal_engine.engine import signal_to_context
+        from signal_engine.signal import signal_to_context
         ctx = signal_to_context(s)
         note = _verify_note(s)
         return f"{note} {ctx}" if note else ctx

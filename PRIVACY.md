@@ -19,12 +19,18 @@ by meaning runs on your own computer with a local model.
 Two things, once, from public sources, both handled by `uv` and the standard Python tools:
 
 - **Software packages** from the Python Package Index (pypi.org): a small core on first start and,
-  if Full search is on, about 650 MB of libraries in the background.
+  if Full search is on, about 800 MB of libraries in the background.
 - **A search model** (`all-MiniLM-L6-v2`, about 90 MB) from Hugging Face (huggingface.co), if Full
   search is on.
 
 Those services see an ordinary download request from your computer, as with any package install.
 Turn Full search off in the plugin's settings to skip the large download and the model.
+
+## What the installer can see
+
+The install job and the memory server are started with a short, fixed list of settings from your
+environment: paths, locale, proxy and certificate settings, and the plugin's own options. API keys,
+tokens and other credentials set in your shell are never passed to them.
 
 ## Credentials
 

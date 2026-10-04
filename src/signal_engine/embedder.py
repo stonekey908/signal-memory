@@ -1,7 +1,9 @@
 """Pluggable embedder — turns text into vectors for semantic (meaning) search.
 
-``MockEmbedder`` (deterministic, no key) for tests; ``OpenAIEmbedder``
-(``text-embedding-3-small``, 1536-dim) for real use. Same interface, swap freely.
+``MockEmbedder`` (deterministic, no key) for tests; ``LocalEmbedder`` (on-device, no key) for the
+product; ``OpenAIEmbedder`` lives in ``openai_embedder`` (benchmark path, needs a key). Same
+interface, swap freely. This module must stay free of API clients and credentials: it ships in the
+plugin.
 """
 
 from __future__ import annotations
@@ -10,8 +12,6 @@ import hashlib
 import math
 from typing import List, Optional, Protocol, runtime_checkable
 
-import signal_engine.config  # noqa: F401  — importing loads .env (API keys)
-from signal_engine.openai_client import openai_client
 
 EMBED_MODEL = "text-embedding-3-small"
 EMBED_DIM = 1536
@@ -48,22 +48,6 @@ class MockEmbedder:
         return [x / norm for x in v]
 
 
-class OpenAIEmbedder:
-    """Real OpenAI embedder (``text-embedding-3-small``, 1536-dim). Requires OPENAI_API_KEY."""
-
-    name = "openai"
-
-    def __init__(self, model: str = EMBED_MODEL, api_key: Optional[str] = None):
-        self.model = model
-        self.dim = EMBED_DIM
-        self._api_key = api_key   # resolved at call time by the shared openai_client()
-
-    def embed(self, texts: List[str]) -> List[List[float]]:
-        if not texts:
-            return []
-        client = openai_client(self._api_key)   # shared client: timeout + retry, no per-call leak
-        resp = client.embeddings.create(model=self.model, input=list(texts))
-        return [d.embedding for d in resp.data]
 
 
 class LocalEmbedder:

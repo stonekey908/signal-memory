@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Sequence, List, Optional
 
 KIND_FACT = "fact"
 KIND_BEHAVIOURAL = "behavioural"
@@ -226,3 +226,47 @@ def behavioural_signal(
         pinned=pinned,
         signal_id=signal_id,
     )
+
+
+# --- shared renderers and the keyword fallback ------------------------------------------------------
+# These live here, on the leaf module, so the PRODUCT server (dumb_mcp_server -> dumb_memory ->
+# keyword_store) can use them without importing the benchmark engine, the vector store, or the
+# OpenAI client. The plugin ships only the product modules (scripts/export_plugin.py).
+
+def signal_text(s: Signal) -> str:
+    """The text we embed / keyword-match for a signal (title + description + content + meta)."""
+    parts = [s.title, s.description or "", s.content or "",
+             s.sentiment or "", s.friction or "", s.tool_choice or "", s.interaction or ""]
+    parts += s.keywords
+    return " ".join(p for p in parts if p)
+
+
+def _keyword_hits(signals, words: Sequence[str], k: int) -> List[Signal]:
+    wset = {w.lower() for w in words}
+    scored = []
+    for s in signals:
+        tokens = {w.lower() for w in s.keywords} | set(signal_text(s).lower().split())
+        overlap = len(wset & tokens)
+        if overlap:
+            scored.append((overlap, s))
+    scored.sort(key=lambda p: -p[0])
+    return [s for _, s in scored[:k]]
+
+
+_META_FIELDS = (("sentiment", "sentiment"), ("friction", "friction"),
+                ("tool_choice", "tool_choice"), ("interaction", "interaction"))
+
+
+def signal_to_context(s: Signal) -> str:
+    """Render a Signal as a context snippet for the reader.
+
+    Prepends the session date when known: temporal-reasoning questions need it — the
+    Wave-0 oracle showed injecting session dates takes temporal from 0 -> 100%, and
+    without it the reader can't reason about "when" (STO-2789)."""
+    if s.is_fact:
+        body = s.content or s.title
+    else:
+        meta = "; ".join(f"{label}: {getattr(s, attr)}" for label, attr in _META_FIELDS if getattr(s, attr))
+        body = f"[behaviour] {s.title}: {meta}"
+    dated = f"[{s.created_at}] {body}" if s.created_at else body
+    return f"[older] {dated}" if (s.is_fact and s.superseded_by) else dated   # STO-2800: annotate, don't drop
