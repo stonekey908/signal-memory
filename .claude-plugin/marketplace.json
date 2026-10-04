@@ -1,0 +1,21 @@
+{
+  "name": "signal-engine",
+  "owner": {
+    "name": "Nick Elias",
+    "url": "https://github.com/stonekey908"
+  },
+  "metadata": {
+    "description": "Signal Memory: local long-term memory for Claude Code, by Signal Engine."
+  },
+  "plugins": [
+    {
+      "name": "signal-memory",
+      "source": "./",
+      "description": "Long-term memory for Claude Code that runs entirely on your machine: ranked recall, pinned standing rules, and a lifecycle that never deletes.",
+      "version": "0.1.0",
+      "category": "productivity",
+      "license": "MIT",
+      "homepage": "https://github.com/stonekey908/signal-memory"
+    }
+  ]
+}

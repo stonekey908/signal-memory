@@ -1,0 +1,6 @@
+# Per-project memory files are created inside YOUR projects, not here.
+__pycache__/
+*.py[cod]
+.venv/
+.signal_engine/
+.DS_Store

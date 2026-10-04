@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "signal-engine"
+version = "0.0.1"
+description = "Agent-level automated long-term memory engine, benchmarked vs mem0 on LongMemEval / BEAM."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "python-dotenv>=1.0",    # load API keys from a local .env (used by config.py)
+]
+
+[project.scripts]
+# Naming: the PRODUCT is Signal Engine (repo, Linear project, ~/.signal_engine/ data). The MCP
+# server it ships is named "signal-memory" ON PURPOSE — that name prefixes every tool the agent
+# sees (mcp__signal-memory__recall), and having "memory" in there is what makes an agent reach for
+# it. Do not rename it to signal-engine for tidiness; that regresses tool discoverability.
+signal-memory-mcp = "signal_engine.dumb_mcp_server:main"  # THE product server (agent does reasoning, 0 API cost)
+signal-dumb-mcp = "signal_engine.dumb_mcp_server:main"    # deprecated alias — kept so existing registrations keep working
+signal-mcp = "signal_engine.mcp_server:main"              # vector/LLM server, benchmark path only (STO-2804)
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+# LLM providers + tokenizer (keyless install): reader/judge/scribbler + tokens/query.
+# Install with `uv sync --extra dev --extra llm`.
+llm = [
+    "openai>=1.0",       # reader/judge (gpt-4o) + headline scribbler (gpt-4o-mini)
+    "google-genai>=0.1", # model-agnostic 2nd-config scribbler (Gemini flash)
+    "tiktoken>=0.7",     # accurate tokens/query counts
+]
+# BEAM benchmark loader (STO-2790 follow-on): the dataset ships as parquet on HuggingFace
+# (Mohammadta/BEAM, splits 100K/500K/1M). `datasets` downloads it + exposes the schema.
+# Install with `uv sync --extra beam`.
+beam = ["datasets>=2.14"]
+# Control panel (Streamlit) — tune every knob + see the schematic + run a test slice.
+# Install with `uv sync --extra ui`, run with `uv run streamlit run app.py`.
+ui = ["streamlit>=1.30"]
+# Vector store. Pinned exactly: chromadb 1.5.9 makes onnxruntime optional-ish, and
+# onnxruntime 1.19.2 is the version with a working py3.9 wheel (1.20.1 has none).
+# Reproducibility (NFR-3) + avoids the py3.9 wheel trap (STO-2722).
+store = ["chromadb==1.5.9", "onnxruntime==1.19.2"]
+# MCP server (STO-2804): package the engine as persistent memory for Claude Code / any MCP host.
+# The server is DEPENDENCY-FREE (a minimal newline-delimited JSON-RPC stdio server) so it runs
+# on the project's pinned py3.9 — the official `mcp` SDK requires py3.10+. Needs `llm` + `store`
+# for the real backend. Run `uv run signal-mcp`. (Future: adopt the SDK if the project moves to
+# 3.10+.) No extra deps, so no `mcp` extra is required.
+# Fully-local / offline memory (STO-2804 slice 2): local embeddings (no API key). Pair with a
+# local Ollama brain (SIGNAL_LLM_PROVIDER=ollama — Ollama itself is a separate install).
+# Install with `uv sync --extra local --extra store`.
+local = ["sentence-transformers>=2.2"]
+# Umbrella: everything the engine needs.
+engine = [
+    "openai>=1.0",
+    "google-genai>=0.1",
+    "tiktoken>=0.7",
+    "chromadb==1.5.9",
+    "onnxruntime==1.19.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]   # "." makes the harness/ package importable in tests

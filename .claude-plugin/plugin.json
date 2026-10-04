@@ -1,0 +1,45 @@
+{
+  "name": "signal-memory",
+  "version": "0.1.0",
+  "description": "Long-term memory for Claude Code that runs entirely on your machine. Your agent stores decisions, commands, gotchas and preferences as small cards, and recalls them in later sessions: ranked search, pinned standing rules, labels for how each fact is known, and a lifecycle that summarises old cards without deleting them. No account, no API key, no data leaves your computer.",
+  "author": {
+    "name": "Nick Elias",
+    "url": "https://github.com/stonekey908"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/stonekey908/signal-memory",
+  "repository": "https://github.com/stonekey908/signal-memory",
+  "privacyPolicyUrl": "https://github.com/stonekey908/signal-memory/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/stonekey908/signal-memory/issues",
+  "keywords": [
+    "memory",
+    "long-term memory",
+    "mcp",
+    "local",
+    "recall",
+    "context"
+  ],
+  "icon": "./.claude-plugin/icon.png",
+  "userConfig": {
+    "full_search": {
+      "type": "boolean",
+      "title": "Full search",
+      "description": "Search by meaning as well as by words. Downloads about 650 MB of libraries and a 90 MB model once, in the background; until it finishes, memory uses keyword search. Turn off to stay on keyword search with no large download.",
+      "default": true
+    }
+  },
+  "mcpServers": {
+    "signal-memory": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--no-project",
+        "--quiet",
+        "${CLAUDE_PLUGIN_ROOT}/plugin/launch.py"
+      ],
+      "env": {
+        "SIGNAL_MEMORY_FULL_SEARCH": "${user_config.full_search}"
+      }
+    }
+  }
+}
